@@ -14,6 +14,7 @@ export type ContextoEvento = {
   eventTime: number; // segundos
   url: string | null;
   telefone: string | null;
+  email?: string | null;
   pais: string | null;
   ip: string | null;
   userAgent: string | null;
@@ -33,6 +34,8 @@ export function montarPayload(c: ContextoEvento, testEventCode?: string | null) 
     user_data.ph = [sha(tel)];
     user_data.external_id = [sha(tel)];
   }
+  const email = c.email?.trim().toLowerCase() ?? "";
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) user_data.em = [sha(email)];
   if (c.pais) user_data.country = [sha(c.pais.toLowerCase())];
   if (c.ip) user_data.client_ip_address = c.ip;
   if (c.userAgent) user_data.client_user_agent = c.userAgent;

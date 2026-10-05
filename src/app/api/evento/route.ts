@@ -8,7 +8,7 @@ import { cabecalhosCors, origemPermitida } from "@/lib/cors";
 
 /**
  * POST /api/evento — chamado pelo t.js das landings.
- * Corpo: { acao: "lead"|"qualificacao", landing: "general"|"trader", event_id, telefone,
+ * Corpo: { acao: "lead"|"qualificacao", landing: "general"|"trader", event_id, telefone, email?,
  *          pais_geo?, idade?, genero?, resposta?, fbp?, fbc?, url?, teste? }
  * Resposta imediata: { ok, evento, event_id, qualificado } — o t.js usa isso para
  * disparar o pixel com o MESMO event_id. O envio à Meta acontece depois (after).
@@ -64,7 +64,7 @@ export async function POST(req: Request) {
       });
       if (reserva === "duplicado") return; // mesmo evento já enviado (clique duplo, recarga)
       const res = await enviarMeta({
-        evento, eventId, eventTime, url: texto(b.url, 1000), telefone, pais, ip, userAgent,
+        evento, eventId, eventTime, url: texto(b.url, 1000), telefone, email: texto(b.email, 254), pais, ip, userAgent,
         fbp: texto(b.fbp, 200), fbc: texto(b.fbc, 300), teste,
         customData: {
           landing,

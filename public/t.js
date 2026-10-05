@@ -6,7 +6,7 @@
  *   <script>window.tde=window.tde||function(){(tde.q=tde.q||[]).push(arguments)}</script>
  *   <script async src="https://SEU-TRACKING.vercel.app/t.js" data-landing="general"></script>
  *
- * Página de obrigado, ao abrir:       tde("lead", { telefone: "59899123456" })
+ * Página de obrigado, ao abrir:       tde("lead", { telefone: "59899123456", email: "x@y.com" })
  * Ao responder as 3 perguntas:        tde("qualificar", { telefone, idade, genero, resposta })
  * Página trader, clique no grupo:     tde("qualificar", { telefone })
  *
@@ -84,6 +84,7 @@
       landing: landing,
       event_id: eventId,
       telefone: telefone || null,
+      email: dados.email || null,
       pais_geo: dados.pais || qs("country") || null,
       idade: dados.idade || null,
       genero: dados.genero || null,

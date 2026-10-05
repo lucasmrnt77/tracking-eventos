@@ -46,3 +46,15 @@ test("payload da CAPI: dados criptografados, event_id e teste", () => {
   assert.equal(real.test_event_code, undefined);
   assert.deepEqual(real.data[0].user_data, {});
 });
+
+test("payload da CAPI: e-mail criptografado quando válido, ignorado quando inválido", () => {
+  const base = {
+    evento: "Lead General", eventId: "abc-12345678", eventTime: 1790900000, url: null,
+    telefone: "59899123456", pais: "UY", ip: null, userAgent: null, fbp: null, fbc: null,
+    customData: {}, teste: false,
+  };
+  const com = montarPayload({ ...base, email: " Teste@Gmail.com " }) as { data: Record<string, any>[] };
+  assert.deepEqual(com.data[0].user_data.em, [sha("teste@gmail.com")]);
+  const sem = montarPayload({ ...base, email: "invalido" }) as { data: Record<string, any>[] };
+  assert.equal("em" in sem.data[0].user_data, false);
+});
