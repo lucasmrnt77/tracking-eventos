@@ -58,3 +58,11 @@ test("payload da CAPI: e-mail criptografado quando válido, ignorado quando inv�
   const sem = montarPayload({ ...base, email: "invalido" }) as { data: Record<string, any>[] };
   assert.equal("em" in sem.data[0].user_data, false);
 });
+
+test("teste sem código de Eventos de teste nunca vai para a Meta", async () => {
+  const { bloquearTesteSemCodigo } = await import("../src/lib/meta");
+  assert.equal(bloquearTesteSemCodigo(true, null), true);
+  assert.equal(bloquearTesteSemCodigo(true, "  "), true);
+  assert.equal(bloquearTesteSemCodigo(true, "TEST1"), false);
+  assert.equal(bloquearTesteSemCodigo(false, null), false);
+});

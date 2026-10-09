@@ -26,6 +26,14 @@ export type ContextoEvento = {
 
 const sha = (v: string) => createHash("sha256").update(v.trim().toLowerCase()).digest("hex");
 
+/**
+ * Requisição de teste sem código de "Eventos de teste" configurado: NÃO pode ir para a Meta,
+ * senão vira evento real nas campanhas. Puro — testável.
+ */
+export function bloquearTesteSemCodigo(teste: boolean, testEventCode?: string | null): boolean {
+  return teste && !testEventCode?.trim();
+}
+
 /** Monta o payload exato enviado à Meta (puro — testável). */
 export function montarPayload(c: ContextoEvento, testEventCode?: string | null) {
   const user_data: Record<string, unknown> = {};
@@ -64,9 +72,14 @@ export async function enviarMeta(c: ContextoEvento): Promise<ResultadoMeta> {
   const token = process.env.META_CAPI_ACCESS_TOKEN?.trim();
   if (!pixel || !token) return { ok: false, http: null, resposta: { erro: "META_PIXEL_ID/META_CAPI_ACCESS_TOKEN não configurados" }, tentativas: 0 };
 
+  const codigoTeste = process.env.META_TEST_EVENT_CODE?.trim() || null;
+  if (bloquearTesteSemCodigo(c.teste, codigoTeste)) {
+    return { ok: false, http: null, resposta: { erro: "teste sem META_TEST_EVENT_CODE: não enviado à Meta" }, tentativas: 0 };
+  }
+
   const base = (process.env.META_GRAPH_URL?.trim() || "https://graph.facebook.com").replace(/\/+$/, "");
   const versao = process.env.META_GRAPH_VERSION?.trim() || "v21.0";
-  const corpo = { ...montarPayload(c, process.env.META_TEST_EVENT_CODE?.trim() || null), access_token: token };
+  const corpo = { ...montarPayload(c, codigoTeste), access_token: token };
 
   let ultimo: ResultadoMeta = { ok: false, http: null, resposta: null, tentativas: 0 };
   // Até 3 tentativas para falhas de rede / 5xx / 429. Erros 4xx (ex.: token inválido) não adianta repetir.
