@@ -20,7 +20,7 @@
 
   var atual = d.currentScript;
   var BASE = atual ? new URL(atual.src).origin : "";
-  var PIXEL = (atual && atual.getAttribute("data-pixel")) || "4290138017915368";
+  var PIXEL = (atual && atual.getAttribute("data-pixel")) || "1380310740734731";
   var LANDING = (atual && atual.getAttribute("data-landing")) || "";
   // Só para o caso de o servidor não responder: o "lead" ainda dispara no pixel.
   var LEAD_RESERVA = { general: "Lead General", trader: "Lead Trader" };
