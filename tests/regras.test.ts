@@ -47,7 +47,19 @@ test("aceita os textos em espanhol do formulário", () => {
   assert.equal(normalizarGenero("Hombre"), "hombre");
 });
 
-test("decidir: nomes dos eventos e trader sempre qualificado", () => {
+test("trader: qualifica só quem opera há 3 meses ou mais", () => {
+  const q = (experiencia: unknown) => decidir("trader", "qualificacao", { pais: "AR", experiencia });
+  assert.deepEqual(q("6-12-meses"), { evento: "Lead Trader Qualificado", qualificado: true });
+  assert.deepEqual(q("de-1-año"), { evento: "Lead Trader Qualificado", qualificado: true });
+  assert.deepEqual(q("6 a 12 meses"), { evento: "Lead Trader Qualificado", qualificado: true });
+  assert.deepEqual(q("menos-3-meses"), { evento: null, qualificado: false });
+  assert.deepEqual(q("Menos de 3 meses"), { evento: null, qualificado: false });
+  assert.deepEqual(q("nunca"), { evento: null, qualificado: false });
+  // Sem experiência (páginas antigas): continua qualificando
+  assert.deepEqual(q(undefined), { evento: "Lead Trader Qualificado", qualificado: true });
+});
+
+test("decidir: nomes dos eventos e trader sem experiência qualificado", () => {
   assert.deepEqual(decidir("general", "lead", { pais: "AR" }), { evento: "Lead General", qualificado: null });
   assert.deepEqual(decidir("trader", "lead", { pais: "UY" }), { evento: "Lead Trader", qualificado: null });
   assert.deepEqual(decidir("trader", "qualificacao", { pais: "AR" }), { evento: "Lead Trader Qualificado", qualificado: true });

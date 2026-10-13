@@ -8,7 +8,7 @@
  *
  * Página de obrigado, ao abrir:       tde("lead", { telefone: "59899123456", email: "x@y.com" })
  * Ao responder as 3 perguntas:        tde("qualificar", { telefone, idade, genero, resposta })
- * Página trader, clique no grupo:     tde("qualificar", { telefone })
+ * Página trader, clique no grupo:     tde("qualificar", { telefone, experiencia })
  *
  * O servidor decide se o evento vale, envia à Meta (CAPI) e devolve o nome e o
  * event_id; só então o pixel dispara com o MESMO event_id (a Meta não conta em dobro).
@@ -89,6 +89,7 @@
       idade: dados.idade || null,
       genero: dados.genero || null,
       resposta: dados.resposta || null,
+      experiencia: dados.experiencia || null,
       fbp: cookie("_fbp"),
       fbc: fbc(),
       url: w.location.href,

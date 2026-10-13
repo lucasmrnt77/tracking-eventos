@@ -7,7 +7,10 @@
  *   • Argentina: "Sí" qualifica todos; "No hoy" só homens de 35 a 64.
  *   • Outros países (inclusive Uruguai): "Sí" ou "No hoy" qualificam todos.
  *   • "Imposible" nunca qualifica.
- * Página trader: não há perguntas — todo clique para entrar no grupo qualifica.
+ * Página trader — "Lead Trader Qualificado" (confirmado pelo Emiliano em 13/10/2026):
+ *   • quem opera há pelo menos 3 meses ("6 a 12 meses" ou "de 1 año") e clica para entrar no grupo;
+ *   • "Menos de 3 meses" e "Nunca hice" não qualificam;
+ *   • sem a experiência informada (páginas antigas): qualifica, como antes.
  * "Lead General" / "Lead Trader": todos que chegam à página de obrigado.
  */
 
@@ -44,6 +47,26 @@ export function normalizarFaixa(v: unknown): Faixa | null {
 
 const FAIXAS_AR_NO_HOY: Faixa[] = ["35_44", "45_54", "55_64"];
 
+export type Experiencia = "nunca" | "menos_3" | "6_12" | "1_mais";
+
+/** Aceita o código do formulário Trader ("menos-3-meses", "6-12-meses", "de-1-año", "nunca") ou o texto. */
+export function normalizarExperiencia(v: unknown): Experiencia | null {
+  const t = String(v ?? "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (!t) return null;
+  if (t.startsWith("nunca")) return "nunca";
+  if (t.includes("menos")) return "menos_3";
+  if (t.startsWith("6") || t.includes("6-12") || t.includes("6 a 12")) return "6_12";
+  if (t.includes("ano") || t.startsWith("1") || t.includes("mas de")) return "1_mais";
+  return null;
+}
+
+/** Trader: qualifica quem opera há 3 meses ou mais. Sem a informação, qualifica (comportamento antigo). */
+export function qualificaTrader(experiencia: unknown): boolean {
+  const e = normalizarExperiencia(experiencia);
+  if (e === null) return true;
+  return e === "6_12" || e === "1_mais";
+}
+
 export function qualificaGeral(p: { pais: string | null; resposta: unknown; genero: unknown; faixa: unknown }): boolean {
   const resposta = normalizarResposta(p.resposta);
   if (resposta === "si_puedo") return true;
@@ -64,8 +87,10 @@ export const EVENTOS: Record<Landing, Record<Acao, string>> = {
 };
 
 /** Decide se a ação gera evento e qual. */
-export function decidir(landing: Landing, acao: Acao, p: { pais: string | null; resposta?: unknown; genero?: unknown; faixa?: unknown }) {
+export function decidir(landing: Landing, acao: Acao, p: { pais: string | null; resposta?: unknown; genero?: unknown; faixa?: unknown; experiencia?: unknown }) {
   if (acao === "lead") return { evento: EVENTOS[landing].lead, qualificado: null as boolean | null };
-  const qualificado = landing === "trader" ? true : qualificaGeral({ pais: p.pais, resposta: p.resposta, genero: p.genero, faixa: p.faixa });
+  const qualificado = landing === "trader"
+    ? qualificaTrader(p.experiencia)
+    : qualificaGeral({ pais: p.pais, resposta: p.resposta, genero: p.genero, faixa: p.faixa });
   return { evento: qualificado ? EVENTOS[landing].qualificacao : null, qualificado };
 }

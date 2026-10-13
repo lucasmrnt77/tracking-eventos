@@ -50,7 +50,8 @@ export async function POST(req: Request) {
     genero: normalizarGenero(b.genero ?? b.gender),
     resposta: normalizarResposta(b.resposta ?? b.respuesta),
   };
-  const { evento, qualificado } = decidir(landing, acao, { pais, ...respostas });
+  const experiencia = texto(b.experiencia, 40);
+  const { evento, qualificado } = decidir(landing, acao, { pais, ...respostas, experiencia });
   const teste = b.teste === true;
 
   if (evento) {
