@@ -1,15 +1,17 @@
 /**
- * REGRAS OFICIAIS DE QUALIFICAÇÃO (confirmadas pelo Emiliano em 02/10/2026).
+ * REGRAS OFICIAIS DE QUALIFICAÇÃO (mapa mental do funil, atualizado em 22/10/2026;
+ * antes: confirmadas pelo Emiliano em 02/10 e 13/10).
  * Este é o ÚNICO lugar com essas regras. Qualquer mudança aqui precisa
  * passar nos testes de tests/regras.test.ts (que cobrem todas as combinações).
  *
  * Página geral — "Lead Qualificado":
- *   • Argentina: "Sí" qualifica todos; "No hoy" só homens de 35 a 64.
+ *   • Argentina: "Sí" qualifica todos; "No hoy" qualifica homens até 64 anos (menor de 25 a 55–64)
+ *     e mulheres de 35 a 44; homens +65 e as demais mulheres não.
  *   • Outros países (inclusive Uruguai): "Sí" ou "No hoy" qualificam todos.
  *   • "Imposible" nunca qualifica.
- * Página trader — "Lead Trader Qualificado" (confirmado pelo Emiliano em 13/10/2026):
- *   • quem opera há pelo menos 3 meses ("6 a 12 meses" ou "de 1 año") e clica para entrar no grupo;
- *   • "Menos de 3 meses" e "Nunca hice" não qualificam;
+ * Página trader — "Lead Trader Qualificado" (Argentina e Uruguai), no clique para entrar no grupo:
+ *   • "Menos de 3 meses", "6 a 12 meses" e "de 1 año" qualificam;
+ *   • "Nunca hice" não qualifica;
  *   • sem a experiência informada (páginas antigas): qualifica, como antes.
  * "Lead General" / "Lead Trader": todos que chegam à página de obrigado.
  */
@@ -45,7 +47,9 @@ export function normalizarFaixa(v: unknown): Faixa | null {
   return null;
 }
 
-const FAIXAS_AR_NO_HOY: Faixa[] = ["35_44", "45_54", "55_64"];
+// Argentina, "No hoy": homens até 64 anos; mulheres só de 35 a 44
+const FAIXAS_AR_NO_HOY_HOMEM: Faixa[] = ["menor_25", "25_34", "35_44", "45_54", "55_64"];
+const FAIXAS_AR_NO_HOY_MULHER: Faixa[] = ["35_44"];
 
 export type Experiencia = "nunca" | "menos_3" | "6_12" | "1_mais";
 
@@ -60,11 +64,9 @@ export function normalizarExperiencia(v: unknown): Experiencia | null {
   return null;
 }
 
-/** Trader: qualifica quem opera há 3 meses ou mais. Sem a informação, qualifica (comportamento antigo). */
+/** Trader: qualifica quem já opera (inclusive "menos de 3 meses"); "Nunca hice" não. Sem a informação, qualifica. */
 export function qualificaTrader(experiencia: unknown): boolean {
-  const e = normalizarExperiencia(experiencia);
-  if (e === null) return true;
-  return e === "6_12" || e === "1_mais";
+  return normalizarExperiencia(experiencia) !== "nunca";
 }
 
 export function qualificaGeral(p: { pais: string | null; resposta: unknown; genero: unknown; faixa: unknown }): boolean {
@@ -74,7 +76,10 @@ export function qualificaGeral(p: { pais: string | null; resposta: unknown; gene
   if (p.pais !== "AR") return true;
   const genero = normalizarGenero(p.genero);
   const faixa = normalizarFaixa(p.faixa);
-  return genero === "hombre" && faixa !== null && FAIXAS_AR_NO_HOY.includes(faixa);
+  if (faixa === null) return false;
+  if (genero === "hombre") return FAIXAS_AR_NO_HOY_HOMEM.includes(faixa);
+  if (genero === "mujer") return FAIXAS_AR_NO_HOY_MULHER.includes(faixa);
+  return false;
 }
 
 export type Landing = "general" | "trader";
