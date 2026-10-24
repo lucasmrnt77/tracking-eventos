@@ -31,3 +31,20 @@ test("saúde: soma o volume por evento", () => {
   ] });
   assert.deepEqual(v, [{ evento: "PageView", total: 10 }, { evento: "Lead", total: 5 }]);
 });
+
+test("fontes: navegador × servidor de um evento (aggregation=event_source)", async () => {
+  const { lerFontes, QUALIFICADOS } = await import("../src/lib/saude");
+  assert.deepEqual(QUALIFICADOS, ["Lead General Qualificado", "Lead Trader Qualificado", "Lead Jubilado Qualificado", "Lead Qualificado GeneralJubilados"]);
+  const j = { data: [
+    { start_time: "a", data: [{ value: "BROWSER", count: 12 }, { value: "SERVER", count: 10 }] },
+    { start_time: "b", data: [{ value: "BROWSER", count: "3" }, { value: "SERVER", count: 5 }] },
+  ] };
+  const f = lerFontes("Lead General Qualificado", j);
+  assert.equal(f.navegador, 15);
+  assert.equal(f.servidor, 15);
+  assert.deepEqual(lerFontes("X", { data: [] }), { evento: "X", ok: true, navegador: 0, servidor: 0, fontes: [] });
+  const desconhecido = lerFontes("X", { data: [{ data: [{ value: "OUTRO", count: 4 }] }] });
+  assert.equal(desconhecido.navegador, null);
+  assert.equal(desconhecido.servidor, null);
+  assert.deepEqual(desconhecido.fontes, [{ valor: "OUTRO", total: 4 }]);
+});

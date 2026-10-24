@@ -1,5 +1,6 @@
 import "server-only";
 import { createHash, timingSafeEqual } from "node:crypto";
+import { EVENTOS } from "./regras";
 
 /**
  * Saúde do pixel na Meta, lida pela própria Meta (tráfego real, não teste):
@@ -99,14 +100,55 @@ export function lerVolume(j: unknown): { evento: string; total: number }[] {
   return [...soma].map(([evento, total]) => ({ evento, total })).sort((a, b) => b.total - a.total);
 }
 
+/** Os eventos de lead qualificado de cada página (comparação nós × Meta pedida pelo Emi, 24/10). */
+export const QUALIFICADOS = [...new Set(Object.values(EVENTOS).map((e) => e.qualificacao))];
+
+export type FontesEvento = { evento: string; ok: boolean; navegador: number | null; servidor: number | null; fontes: { valor: string; total: number }[]; erro?: string };
+
+/**
+ * Estatísticas do pixel com aggregation=event_source para UM evento: quantos chegaram pelo navegador
+ * (pixel) e pelo servidor (API de Conversões), antes de a Meta juntar os repetidos. Pura — testável.
+ * Os rótulos exatos da Meta podem variar; o que não for reconhecido fica em `fontes` (e aparece no painel).
+ */
+export function lerFontes(evento: string, j: unknown): FontesEvento {
+  const blocos = (j as { data?: unknown[] } | null)?.data;
+  const soma = new Map<string, number>();
+  if (Array.isArray(blocos)) {
+    for (const b of blocos) {
+      const itens = (b as { data?: unknown[] }).data;
+      if (!Array.isArray(itens)) continue;
+      for (const i of itens) {
+        const x = i as { value?: unknown; count?: unknown };
+        const n = num(x.count);
+        if (x.value != null && n != null) soma.set(String(x.value), (soma.get(String(x.value)) ?? 0) + n);
+      }
+    }
+  }
+  const fontes = [...soma].map(([valor, total]) => ({ valor, total }));
+  const total = (re: RegExp) => {
+    const xs = fontes.filter((f) => re.test(f.valor));
+    return xs.length ? xs.reduce((t, f) => t + f.total, 0) : null;
+  };
+  const vazio = fontes.length === 0;
+  return {
+    evento,
+    ok: true,
+    navegador: vazio ? 0 : total(/browser|pixel|web|navegador/i),
+    servidor: vazio ? 0 : total(/server|servidor|capi|conversion|api/i),
+    fontes,
+  };
+}
+
 export async function consultarSaude() {
   const pixel = process.env.META_PIXEL_ID?.trim();
   const token = process.env.META_CAPI_ACCESS_TOKEN?.trim();
   if (!pixel || !token) return { ok: false as const, erro: "META_PIXEL_ID/META_CAPI_ACCESS_TOKEN não configurados" };
   const agora = Math.floor(Date.now() / 1000);
-  const [q, v] = await Promise.all([
+  const janela = { start_time: String(agora - 86_400), end_time: String(agora) };
+  const [q, v, ...fs] = await Promise.all([
     graph("dataset_quality", { dataset_id: pixel, fields: `web{${CAMPOS_QUALIDADE}}` }, token),
-    graph(`${pixel}/stats`, { aggregation: "event", start_time: String(agora - 86_400), end_time: String(agora) }, token),
+    graph(`${pixel}/stats`, { aggregation: "event", ...janela }, token),
+    ...QUALIFICADOS.map((evento) => graph(`${pixel}/stats`, { aggregation: "event_source", event: evento, ...janela }, token)),
   ]);
   return {
     ok: true as const,
@@ -114,5 +156,10 @@ export async function consultarSaude() {
     consultado_em: new Date().toISOString(),
     qualidade: q.ok ? { ok: true as const, eventos: lerQualidade(q.dados) } : q,
     volume_24h: v.ok ? { ok: true as const, eventos: lerVolume(v.dados) } : v,
+    // Qualificados: navegador × servidor, para o painel comparar com o que nós enviamos
+    qualificados_24h: QUALIFICADOS.map((evento, i): FontesEvento => {
+      const f = fs[i];
+      return f.ok ? lerFontes(evento, f.dados) : { evento, ok: false, navegador: null, servidor: null, fontes: [], erro: f.erro };
+    }),
   };
 }
