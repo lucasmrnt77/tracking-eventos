@@ -48,10 +48,12 @@
     try { d.cookie = "_fbc=" + v + "; path=/; max-age=7776000; SameSite=Lax"; } catch (e) { /* ignora */ }
     return v;
   }
+  // PageView só 1 vez por página: nas gracias o GTM também manda "trackSingle PageView"; se o t.js criar o
+  // fbq primeiro, o 2º PageView do mesmo endereço (o do GTM) é ignorado. Se o GTM criar antes, o t.js não manda.
   function garantirPixel() {
     if (w.fbq) return;
     /* eslint-disable */
-    !function (f, b, e, v, n, t, s) { if (f.fbq) return; n = f.fbq = function () { n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments) }; if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = "2.0"; n.queue = []; t = b.createElement(e); t.async = !0; t.src = v; s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s) }(w, d, "script", "https://connect.facebook.net/en_US/fbevents.js");
+    !function (f, b, e, v, n, t, s) { if (f.fbq) return; n = f.fbq = function () { var a = arguments, k = location.pathname; if ((a[0] === "track" && a[1] === "PageView") || (a[0] === "trackSingle" && a[2] === "PageView")) { if (n._pv === k) return; n._pv = k } n.callMethod ? n.callMethod.apply(n, a) : n.queue.push(a) }; if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = "2.0"; n.queue = []; t = b.createElement(e); t.async = !0; t.src = v; s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s) }(w, d, "script", "https://connect.facebook.net/en_US/fbevents.js");
     /* eslint-enable */
     w.fbq("init", PIXEL);
     w.fbq("track", "PageView");
