@@ -90,10 +90,10 @@ export type Acao = "lead" | "qualificacao";
 export const EVENTOS: Record<Landing, Record<Acao, string>> = {
   general: { lead: "Lead General", qualificacao: "Lead Qualificado" },
   trader: { lead: "Lead Trader", qualificacao: "Lead Trader Qualificado" },
-  // Jubilados (24/10): qualificado próprio, mesma regra da General; o lead continua "Lead General"
-  jubilados: { lead: "Lead General", qualificacao: "Lead Jubilado Qualificado" },
+  // Jubilados (24/10): eventos próprios (lead e qualificado), mesma regra da General
+  jubilados: { lead: "Lead Jubilado", qualificacao: "Lead Jubilado Qualificado" },
   // General/Jubilados (24/10): idem, qualificado próprio
-  genjub: { lead: "Lead General", qualificacao: "Lead Qualificado GeneralJubilados" },
+  genjub: { lead: "Lead GeneralJubilados", qualificacao: "Lead Qualificado GeneralJubilados" },
 };
 
 /** Desqualificado (24/10): quem clicou no grupo e NÃO passou na regra da página. */

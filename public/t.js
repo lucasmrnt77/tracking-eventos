@@ -23,7 +23,7 @@
   var PIXEL = (atual && atual.getAttribute("data-pixel")) || "1380310740734731";
   var LANDING = (atual && atual.getAttribute("data-landing")) || "";
   // Só para o caso de o servidor não responder: o "lead" ainda dispara no pixel.
-  var LEAD_RESERVA = { general: "Lead General", trader: "Lead Trader", jubilados: "Lead General", genjub: "Lead General" };
+  var LEAD_RESERVA = { general: "Lead General", trader: "Lead Trader", jubilados: "Lead Jubilado", genjub: "Lead GeneralJubilados" };
 
   function cookie(n) {
     var m = d.cookie.match(new RegExp("(?:^|; )" + n + "=([^;]*)"));
