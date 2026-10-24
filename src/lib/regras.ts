@@ -4,7 +4,7 @@
  * Este é o ÚNICO lugar com essas regras. Qualquer mudança aqui precisa
  * passar nos testes de tests/regras.test.ts (que cobrem todas as combinações).
  *
- * Página geral — "Lead Qualificado":
+ * Página geral — "Lead General Qualificado" (até 24/10 era "Lead Qualificado"):
  *   • Uruguai: "Sí" ou "No hoy" qualificam todos.
  *   • Argentina e TODOS OS OUTROS PAÍSES (decisão de 23/10/2026; também sem país conhecido):
  *     "Sí" qualifica todos; "No hoy" qualifica homens até 64 anos (menor de 25 a 55–64)
@@ -88,7 +88,7 @@ export type Acao = "lead" | "qualificacao";
 
 /** Nomes dos eventos — os MESMOS já usados nas campanhas. Não renomear. */
 export const EVENTOS: Record<Landing, Record<Acao, string>> = {
-  general: { lead: "Lead General", qualificacao: "Lead Qualificado" },
+  general: { lead: "Lead General", qualificacao: "Lead General Qualificado" },
   trader: { lead: "Lead Trader", qualificacao: "Lead Trader Qualificado" },
   // Jubilados (24/10): eventos próprios (lead e qualificado), mesma regra da General
   jubilados: { lead: "Lead Jubilado", qualificacao: "Lead Jubilado Qualificado" },

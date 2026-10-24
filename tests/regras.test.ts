@@ -75,9 +75,9 @@ test("decidir: nomes dos eventos e trader sem experiência qualificado", () => {
   assert.deepEqual(decidir("general", "lead", { pais: "AR" }), { evento: "Lead General", qualificado: null });
   assert.deepEqual(decidir("trader", "lead", { pais: "UY" }), { evento: "Lead Trader", qualificado: null });
   assert.deepEqual(decidir("trader", "qualificacao", { pais: "AR" }), { evento: "Lead Trader Qualificado", qualificado: true });
-  assert.deepEqual(decidir("general", "qualificacao", { pais: "AR", resposta: "no_pero_podria", genero: "mujer", faixa: "35_44" }), { evento: "Lead Qualificado", qualificado: true });
+  assert.deepEqual(decidir("general", "qualificacao", { pais: "AR", resposta: "no_pero_podria", genero: "mujer", faixa: "35_44" }), { evento: "Lead General Qualificado", qualificado: true });
   assert.deepEqual(decidir("general", "qualificacao", { pais: "AR", resposta: "no_pero_podria", genero: "mujer", faixa: "25_34" }), { evento: "Lead General Desqualificado", qualificado: false });
-  assert.deepEqual(decidir("general", "qualificacao", { pais: "UY", resposta: "no_pero_podria", genero: "mujer", faixa: "35_44" }), { evento: "Lead Qualificado", qualificado: true });
+  assert.deepEqual(decidir("general", "qualificacao", { pais: "UY", resposta: "no_pero_podria", genero: "mujer", faixa: "35_44" }), { evento: "Lead General Qualificado", qualificado: true });
   // Jubilados: mesma regra da General, evento próprio
   assert.deepEqual(decidir("jubilados", "lead", { pais: "UY" }), { evento: "Lead Jubilado", qualificado: null });
   assert.deepEqual(decidir("jubilados", "qualificacao", { pais: "AR", resposta: "si_puedo" }), { evento: "Lead Jubilado Qualificado", qualificado: true });
@@ -89,7 +89,7 @@ test("decidir: nomes dos eventos e trader sem experiência qualificado", () => {
   assert.deepEqual(decidir("genjub", "qualificacao", { pais: "AR", resposta: "no_pero_podria", genero: "mujer", faixa: "25_34" }), { evento: "Lead Desqualificado GeneralJubilados", qualificado: false });
   // Nomes não podem mudar: as campanhas otimizam por eles.
   assert.deepEqual(EVENTOS, {
-    general: { lead: "Lead General", qualificacao: "Lead Qualificado" },
+    general: { lead: "Lead General", qualificacao: "Lead General Qualificado" },
     trader: { lead: "Lead Trader", qualificacao: "Lead Trader Qualificado" },
     jubilados: { lead: "Lead Jubilado", qualificacao: "Lead Jubilado Qualificado" },
     genjub: { lead: "Lead GeneralJubilados", qualificacao: "Lead Qualificado GeneralJubilados" },
