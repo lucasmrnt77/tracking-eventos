@@ -98,7 +98,7 @@ export const EVENTOS: Record<Landing, Record<Acao, string>> = {
 
 /** Desqualificado (24/10): quem clicou no grupo e NÃO passou na regra da página. */
 export const DESQUALIFICADO: Record<Landing, string> = {
-  general: "Lead Desqualificado",
+  general: "Lead General Desqualificado",
   trader: "Lead Trader Desqualificado",
   jubilados: "Lead Jubilado Desqualificado",
   genjub: "Lead Desqualificado GeneralJubilados",

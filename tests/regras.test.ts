@@ -76,7 +76,7 @@ test("decidir: nomes dos eventos e trader sem experiência qualificado", () => {
   assert.deepEqual(decidir("trader", "lead", { pais: "UY" }), { evento: "Lead Trader", qualificado: null });
   assert.deepEqual(decidir("trader", "qualificacao", { pais: "AR" }), { evento: "Lead Trader Qualificado", qualificado: true });
   assert.deepEqual(decidir("general", "qualificacao", { pais: "AR", resposta: "no_pero_podria", genero: "mujer", faixa: "35_44" }), { evento: "Lead Qualificado", qualificado: true });
-  assert.deepEqual(decidir("general", "qualificacao", { pais: "AR", resposta: "no_pero_podria", genero: "mujer", faixa: "25_34" }), { evento: "Lead Desqualificado", qualificado: false });
+  assert.deepEqual(decidir("general", "qualificacao", { pais: "AR", resposta: "no_pero_podria", genero: "mujer", faixa: "25_34" }), { evento: "Lead General Desqualificado", qualificado: false });
   assert.deepEqual(decidir("general", "qualificacao", { pais: "UY", resposta: "no_pero_podria", genero: "mujer", faixa: "35_44" }), { evento: "Lead Qualificado", qualificado: true });
   // Jubilados: mesma regra da General, evento próprio
   assert.deepEqual(decidir("jubilados", "lead", { pais: "UY" }), { evento: "Lead General", qualificado: null });
@@ -95,7 +95,7 @@ test("decidir: nomes dos eventos e trader sem experiência qualificado", () => {
     genjub: { lead: "Lead General", qualificacao: "Lead Qualificado GeneralJubilados" },
   });
   assert.deepEqual(DESQUALIFICADO, {
-    general: "Lead Desqualificado",
+    general: "Lead General Desqualificado",
     trader: "Lead Trader Desqualificado",
     jubilados: "Lead Jubilado Desqualificado",
     genjub: "Lead Desqualificado GeneralJubilados",
