@@ -52,7 +52,9 @@ export async function POST(req: Request) {
   };
   const experiencia = texto(b.experiencia, 40);
   const { evento, qualificado } = decidir(landing, acao, { pais, ...respostas, experiencia });
-  const teste = b.teste === true;
+  // MODO_TESTE_GERAL=ligado (variável na Vercel + Redeploy): TODOS os eventos vão como teste (código META_TEST_EVENT_CODE),
+  // sem precisar de ?tde_teste=1 — só para testes rápidos. Enquanto ligado, as campanhas NÃO recebem os eventos do servidor.
+  const teste = b.teste === true || process.env.MODO_TESTE_GERAL === "ligado";
 
   if (evento) {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
@@ -69,7 +71,7 @@ export async function POST(req: Request) {
         fbp: texto(b.fbp, 200), fbc: texto(b.fbc, 300), teste,
         customData: {
           landing,
-          lead_type: acao === "lead" ? "general" : "qualified",
+          lead_type: acao === "lead" ? "general" : qualificado ? "qualified" : "disqualified",
           ...(pais ? { country: pais } : {}),
           ...(respostas.faixa ? { age_range: respostas.faixa } : {}),
           ...(respostas.genero ? { gender: respostas.genero } : {}),

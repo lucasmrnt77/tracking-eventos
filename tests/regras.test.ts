@@ -65,8 +65,8 @@ test("trader: qualifica quem já opera (inclusive menos de 3 meses); Nunca hice 
   assert.deepEqual(q("6 a 12 meses"), { evento: "Lead Trader Qualificado", qualificado: true });
   assert.deepEqual(q("menos-3-meses"), { evento: "Lead Trader Qualificado", qualificado: true });
   assert.deepEqual(q("Menos de 3 meses"), { evento: "Lead Trader Qualificado", qualificado: true });
-  assert.deepEqual(q("Nunca hice"), { evento: null, qualificado: false });
-  assert.deepEqual(q("nunca"), { evento: null, qualificado: false });
+  assert.deepEqual(q("Nunca hice"), { evento: "Lead Trader Desqualificado", qualificado: false });
+  assert.deepEqual(q("nunca"), { evento: "Lead Trader Desqualificado", qualificado: false });
   // Sem experiência (páginas antigas): continua qualificando
   assert.deepEqual(q(undefined), { evento: "Lead Trader Qualificado", qualificado: true });
 });
