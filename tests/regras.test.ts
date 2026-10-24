@@ -6,8 +6,8 @@ import { decidir, qualificaGeral, normalizarResposta, normalizarFaixa, normaliza
 function esperado(pais: string | null, resposta: string | null, genero: string | null, faixa: string | null): boolean {
   if (resposta === "si_puedo") return true;
   if (resposta === "no_imposible" || resposta === null) return false;
-  // "No hoy"
-  if (pais === "AR") {
+  // "No hoy": Uruguai qualifica todos; Argentina e os outros países (e sem país) seguem a regra da Argentina
+  if (pais !== "UY") {
     if (genero === "hombre") return ["menor_25", "25_34", "35_44", "45_54", "55_64"].includes(faixa ?? "");
     if (genero === "mujer") return faixa === "35_44";
     return false;
@@ -40,6 +40,10 @@ test("casos-chave da regra oficial", () => {
   assert.equal(q("AR", "no_pero_podria", "mujer", "45_54"), false, "AR No hoy: mulher fora de 35–44 não");
   assert.equal(q("AR", "no_pero_podria", "mujer", "menor_25"), false);
   assert.equal(q("UY", "no_pero_podria", "mujer", "menor_25"), true, "UY No hoy vale para todos");
+  assert.equal(q("BR", "no_pero_podria", "mujer", "25_34"), false, "Outros países seguem a Argentina: mulher 25–34 não");
+  assert.equal(q("BR", "no_pero_podria", "mujer", "35_44"), true, "Outros países: mulher 35–44 qualifica");
+  assert.equal(q("US", "no_pero_podria", "hombre", "mayor_65"), false, "Outros países: homem +65 não");
+  assert.equal(q("CL", "si_puedo", "mujer", "25_34"), true, "Sí qualifica em qualquer país");
   assert.equal(q("UY", "no_imposible", "hombre", "35_44"), false, "Imposible nunca");
   assert.equal(q("AR", "no_imposible", "hombre", "35_44"), false);
 });

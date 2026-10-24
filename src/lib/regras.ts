@@ -1,13 +1,14 @@
 /**
- * REGRAS OFICIAIS DE QUALIFICAÇÃO (mapa mental do funil, atualizado em 22/10/2026;
+ * REGRAS OFICIAIS DE QUALIFICAÇÃO (mapa mental do funil, atualizado em 22/10/2026 e 23/10/2026;
  * antes: confirmadas pelo Emiliano em 02/10 e 13/10).
  * Este é o ÚNICO lugar com essas regras. Qualquer mudança aqui precisa
  * passar nos testes de tests/regras.test.ts (que cobrem todas as combinações).
  *
  * Página geral — "Lead Qualificado":
- *   • Argentina: "Sí" qualifica todos; "No hoy" qualifica homens até 64 anos (menor de 25 a 55–64)
+ *   • Uruguai: "Sí" ou "No hoy" qualificam todos.
+ *   • Argentina e TODOS OS OUTROS PAÍSES (decisão de 23/10/2026; também sem país conhecido):
+ *     "Sí" qualifica todos; "No hoy" qualifica homens até 64 anos (menor de 25 a 55–64)
  *     e mulheres de 35 a 44; homens +65 e as demais mulheres não.
- *   • Outros países (inclusive Uruguai): "Sí" ou "No hoy" qualificam todos.
  *   • "Imposible" nunca qualifica.
  * Página trader — "Lead Trader Qualificado" (Argentina e Uruguai), no clique para entrar no grupo:
  *   • "Menos de 3 meses", "6 a 12 meses" e "de 1 año" qualificam;
@@ -47,7 +48,7 @@ export function normalizarFaixa(v: unknown): Faixa | null {
   return null;
 }
 
-// Argentina, "No hoy": homens até 64 anos; mulheres só de 35 a 44
+// Argentina e outros países (todos menos o Uruguai), "No hoy": homens até 64 anos; mulheres só de 35 a 44
 const FAIXAS_AR_NO_HOY_HOMEM: Faixa[] = ["menor_25", "25_34", "35_44", "45_54", "55_64"];
 const FAIXAS_AR_NO_HOY_MULHER: Faixa[] = ["35_44"];
 
@@ -73,7 +74,7 @@ export function qualificaGeral(p: { pais: string | null; resposta: unknown; gene
   const resposta = normalizarResposta(p.resposta);
   if (resposta === "si_puedo") return true;
   if (resposta !== "no_pero_podria") return false; // "Imposible" ou vazio nunca qualifica
-  if (p.pais !== "AR") return true;
+  if (p.pais === "UY") return true; // Uruguai: "No hoy" qualifica todos; o resto segue a regra da Argentina
   const genero = normalizarGenero(p.genero);
   const faixa = normalizarFaixa(p.faixa);
   if (faixa === null) return false;
