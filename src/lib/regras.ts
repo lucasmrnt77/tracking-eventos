@@ -96,8 +96,13 @@ export const EVENTOS: Record<Landing, Record<Acao, string>> = {
   genjub: { lead: "Lead General", qualificacao: "Lead Qualificado GeneralJubilados" },
 };
 
-/** Desqualificado (24/10): só Trader — quem marcou "Nunca hice" e clicou no grupo. As outras páginas não mandam. */
-export const DESQUALIFICADO: Partial<Record<Landing, string>> = { trader: "Lead Trader Desqualificado" };
+/** Desqualificado (24/10): quem clicou no grupo e NÃO passou na regra da página. */
+export const DESQUALIFICADO: Record<Landing, string> = {
+  general: "Lead Desqualificado",
+  trader: "Lead Trader Desqualificado",
+  jubilados: "Lead Jubilado Desqualificado",
+  genjub: "Lead Desqualificado GeneralJubilados",
+};
 
 /** Decide se a ação gera evento e qual. */
 export function decidir(landing: Landing, acao: Acao, p: { pais: string | null; resposta?: unknown; genero?: unknown; faixa?: unknown; experiencia?: unknown }) {
@@ -105,5 +110,5 @@ export function decidir(landing: Landing, acao: Acao, p: { pais: string | null; 
   const qualificado = landing === "trader"
     ? qualificaTrader(p.experiencia)
     : qualificaGeral({ pais: p.pais, resposta: p.resposta, genero: p.genero, faixa: p.faixa });
-  return { evento: qualificado ? EVENTOS[landing].qualificacao : (DESQUALIFICADO[landing] ?? null), qualificado };
+  return { evento: qualificado ? EVENTOS[landing].qualificacao : DESQUALIFICADO[landing], qualificado };
 }
