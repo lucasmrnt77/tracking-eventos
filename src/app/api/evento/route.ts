@@ -8,14 +8,14 @@ import { cabecalhosCors, origemPermitida } from "@/lib/cors";
 
 /**
  * POST /api/evento — chamado pelo t.js das landings.
- * Corpo: { acao: "lead"|"qualificacao", landing: "general"|"trader", event_id, telefone, email?,
+ * Corpo: { acao: "lead"|"qualificacao", landing: "general"|"trader"|"jubilados", event_id, telefone, email?,
  *          pais_geo?, idade?, genero?, resposta?, fbp?, fbc?, url?, teste? }
  * Resposta imediata: { ok, evento, event_id, qualificado } — o t.js usa isso para
  * disparar o pixel com o MESMO event_id. O envio à Meta acontece depois (after).
  */
 export const maxDuration = 30;
 
-const LANDINGS = new Set<Landing>(["general", "trader"]);
+const LANDINGS = new Set<Landing>(["general", "trader", "jubilados"]);
 const ACOES = new Set<Acao>(["lead", "qualificacao"]);
 const texto = (v: unknown, max = 500) => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null);
 
