@@ -83,7 +83,7 @@ export function qualificaGeral(p: { pais: string | null; resposta: unknown; gene
   return false;
 }
 
-export type Landing = "general" | "trader" | "jubilados";
+export type Landing = "general" | "trader" | "jubilados" | "genjub";
 export type Acao = "lead" | "qualificacao";
 
 /** Nomes dos eventos — os MESMOS já usados nas campanhas. Não renomear. */
@@ -92,6 +92,8 @@ export const EVENTOS: Record<Landing, Record<Acao, string>> = {
   trader: { lead: "Lead Trader", qualificacao: "Lead Trader Qualificado" },
   // Jubilados (24/10): qualificado próprio, mesma regra da General; o lead continua "Lead General"
   jubilados: { lead: "Lead General", qualificacao: "Lead Jubilado Qualificado" },
+  // General/Jubilados (24/10): idem, qualificado próprio
+  genjub: { lead: "Lead General", qualificacao: "Lead Qualificado GeneralJubilados" },
 };
 
 /** Decide se a ação gera evento e qual. */
