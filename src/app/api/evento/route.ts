@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     resposta: normalizarResposta(b.resposta ?? b.respuesta),
   };
   const experiencia = texto(b.experiencia, 40);
-  const { evento, qualificado } = decidir(landing, acao, { pais, ...respostas, experiencia });
+  const { evento, qualificado, qualificado_meta } = decidir(landing, acao, { pais, ...respostas, experiencia });
   // MODO_TESTE_GERAL=ligado (variável na Vercel + Redeploy): TODOS os eventos vão como teste (código META_TEST_EVENT_CODE),
   // sem precisar de ?tde_teste=1 — só para testes rápidos. Enquanto ligado, as campanhas NÃO recebem os eventos do servidor.
   const teste = b.teste === true || process.env.MODO_TESTE_GERAL === "ligado";
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
     after(async () => {
       const reserva = await reservar({
         landing, acao, event_name: evento, event_id: eventId,
-        telefone_chave: telefoneChave(telefone), pais, qualificado, teste,
+        telefone_chave: telefoneChave(telefone), pais, qualificado: qualificado_meta, teste, // o registro acompanha o evento enviado
       });
       if (reserva === "duplicado") return; // mesmo evento já enviado (clique duplo, recarga)
       const res = await enviarMeta({
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
         fbp: texto(b.fbp, 200), fbc: texto(b.fbc, 300), teste,
         customData: {
           landing,
-          lead_type: acao === "lead" ? "general" : qualificado ? "qualified" : "disqualified",
+          lead_type: acao === "lead" ? "general" : qualificado_meta ? "qualified" : "disqualified",
           ...(pais ? { country: pais } : {}),
           ...(respostas.faixa ? { age_range: respostas.faixa } : {}),
           ...(respostas.genero ? { gender: respostas.genero } : {}),
@@ -83,7 +83,8 @@ export async function POST(req: Request) {
     });
   }
 
-  return responder({ ok: true, evento, event_id: eventId, qualificado });
+  // qualificado = critério da planilha/painel (regra anterior até o fim dos testes); qualificado_meta = o que foi para a Meta
+  return responder({ ok: true, evento, event_id: eventId, qualificado, qualificado_meta });
 }
 
 /** Verificação rápida de saúde: GET /api/evento */

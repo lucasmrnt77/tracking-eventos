@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { decidir, qualificaGeral, normalizarResposta, normalizarFaixa, normalizarGenero, EVENTOS, DESQUALIFICADO } from "../src/lib/regras";
+import { decidir, qualificaGeral, qualificaMeta, normalizarResposta, normalizarFaixa, normalizarGenero, EVENTOS, DESQUALIFICADO } from "../src/lib/regras";
 
-// Regra oficial reescrita de forma independente, como tabela, para comparar com o código.
+// B) Critério da planilha/painel (regra anterior, até o fim dos testes) — reescrito de forma independente, como tabela, para comparar com o código.
 function esperado(pais: string | null, resposta: string | null, genero: string | null, faixa: string | null): boolean {
   if (resposta === "si_puedo") return true;
   if (resposta === "no_imposible" || resposta === null) return false;
@@ -48,6 +48,57 @@ test("casos-chave da regra oficial", () => {
   assert.equal(q("AR", "no_imposible", "hombre", "35_44"), false);
 });
 
+// A) Evento na Meta (regra nova do Emi, 27/10) — reescrita de forma independente.
+function esperadoMeta(pais: string | null, resposta: string | null, genero: string | null, faixa: string | null): boolean {
+  if (resposta === "no_imposible" || resposta === null) return false;
+  const uy = pais === "UY";
+  if (genero && faixa) {
+    const perfilFora = uy
+      ? (genero === "mujer" && faixa === "55_64") || (genero === "hombre" && faixa === "mayor_65")
+      : (genero === "mujer" && faixa !== "45_54") || (genero === "hombre" && faixa === "mayor_65");
+    if (perfilFora) return false;
+  }
+  if (resposta === "si_puedo") return true;
+  if (uy) return true;
+  return !!genero && !!faixa;
+}
+
+test("Meta: todas as combinações país × resposta × gênero × idade (regra de 27/10)", () => {
+  for (const p of ["AR", "UY", "BR", "CL", "US", null]) for (const r of ["si_puedo", "no_pero_podria", "no_imposible", null])
+    for (const g of ["hombre", "mujer", null]) for (const f of ["menor_25", "25_34", "35_44", "45_54", "55_64", "mayor_65", null])
+      assert.equal(qualificaMeta({ pais: p, resposta: r, genero: g, faixa: f }), esperadoMeta(p, r, g, f), `${p} ${r} ${g} ${f}`);
+});
+
+test("Meta: casos-chave da regra de 27/10", () => {
+  const q = (pais: string, resposta: string, genero: string, faixa: string) => qualificaMeta({ pais, resposta, genero, faixa });
+  // Uruguai
+  assert.equal(q("UY", "no_pero_podria", "mujer", "menor_25"), true, "UY No hoy: mulher jovem qualifica");
+  assert.equal(q("UY", "no_pero_podria", "mujer", "mayor_65"), true, "UY: mulher +65 não está no filtro");
+  assert.equal(q("UY", "si_puedo", "mujer", "55_64"), false, "UY: mulher 55–64 fora mesmo com Sí");
+  assert.equal(q("UY", "no_pero_podria", "mujer", "55_64"), false);
+  assert.equal(q("UY", "si_puedo", "hombre", "mayor_65"), false, "UY: homem +65 fora mesmo com Sí");
+  assert.equal(q("UY", "no_pero_podria", "hombre", "55_64"), true);
+  assert.equal(q("UY", "no_imposible", "hombre", "35_44"), false, "Imposible nunca");
+  // Argentina
+  assert.equal(q("AR", "si_puedo", "mujer", "45_54"), true, "AR: mulher 45–54 com Sí qualifica");
+  assert.equal(q("AR", "no_pero_podria", "mujer", "45_54"), true, "AR: mulher 45–54 com No hoy qualifica");
+  for (const f of ["menor_25", "25_34", "35_44", "55_64", "mayor_65"]) {
+    assert.equal(q("AR", "si_puedo", "mujer", f), false, `AR: mulher ${f} fora mesmo com Sí`);
+    assert.equal(q("AR", "no_pero_podria", "mujer", f), false, `AR: mulher ${f} fora`);
+  }
+  for (const f of ["menor_25", "25_34", "35_44", "45_54", "55_64"]) {
+    assert.equal(q("AR", "si_puedo", "hombre", f), true);
+    assert.equal(q("AR", "no_pero_podria", "hombre", f), true, `AR No hoy: homem ${f} qualifica`);
+  }
+  assert.equal(q("AR", "si_puedo", "hombre", "mayor_65"), false, "AR: homem +65 fora mesmo com Sí");
+  assert.equal(q("AR", "no_pero_podria", "hombre", "mayor_65"), false);
+  assert.equal(q("AR", "no_imposible", "mujer", "45_54"), false);
+  // Outros países = Argentina
+  assert.equal(q("BR", "no_pero_podria", "mujer", "45_54"), true);
+  assert.equal(q("CL", "si_puedo", "mujer", "25_34"), false, "Outros países seguem a Argentina");
+  assert.equal(q("US", "si_puedo", "hombre", "mayor_65"), false);
+});
+
 test("aceita os textos em espanhol do formulário", () => {
   assert.equal(normalizarResposta("Sí, podría hacerlo sin problema"), "si_puedo");
   assert.equal(normalizarResposta("No hoy, pero podría organizarme para conseguirlo"), "no_pero_podria");
@@ -60,33 +111,37 @@ test("aceita os textos em espanhol do formulário", () => {
 
 test("trader: qualifica quem já opera (inclusive menos de 3 meses); Nunca hice não", () => {
   const q = (experiencia: unknown) => decidir("trader", "qualificacao", { pais: "AR", experiencia });
-  assert.deepEqual(q("6-12-meses"), { evento: "Lead Trader Qualificado", qualificado: true });
-  assert.deepEqual(q("de-1-año"), { evento: "Lead Trader Qualificado", qualificado: true });
-  assert.deepEqual(q("6 a 12 meses"), { evento: "Lead Trader Qualificado", qualificado: true });
-  assert.deepEqual(q("menos-3-meses"), { evento: "Lead Trader Qualificado", qualificado: true });
-  assert.deepEqual(q("Menos de 3 meses"), { evento: "Lead Trader Qualificado", qualificado: true });
-  assert.deepEqual(q("Nunca hice"), { evento: "Lead Trader Desqualificado", qualificado: false });
-  assert.deepEqual(q("nunca"), { evento: "Lead Trader Desqualificado", qualificado: false });
+  assert.deepEqual(q("6-12-meses"), { evento: "Lead Trader Qualificado", qualificado: true, qualificado_meta: true });
+  assert.deepEqual(q("de-1-año"), { evento: "Lead Trader Qualificado", qualificado: true, qualificado_meta: true });
+  assert.deepEqual(q("6 a 12 meses"), { evento: "Lead Trader Qualificado", qualificado: true, qualificado_meta: true });
+  assert.deepEqual(q("menos-3-meses"), { evento: "Lead Trader Qualificado", qualificado: true, qualificado_meta: true });
+  assert.deepEqual(q("Menos de 3 meses"), { evento: "Lead Trader Qualificado", qualificado: true, qualificado_meta: true });
+  assert.deepEqual(q("Nunca hice"), { evento: "Lead Trader Desqualificado", qualificado: false, qualificado_meta: false });
+  assert.deepEqual(q("nunca"), { evento: "Lead Trader Desqualificado", qualificado: false, qualificado_meta: false });
   // Sem experiência (páginas antigas): continua qualificando
-  assert.deepEqual(q(undefined), { evento: "Lead Trader Qualificado", qualificado: true });
+  assert.deepEqual(q(undefined), { evento: "Lead Trader Qualificado", qualificado: true, qualificado_meta: true });
 });
 
 test("decidir: nomes dos eventos e trader sem experiência qualificado", () => {
-  assert.deepEqual(decidir("general", "lead", { pais: "AR" }), { evento: "Lead General", qualificado: null });
-  assert.deepEqual(decidir("trader", "lead", { pais: "UY" }), { evento: "Lead Trader", qualificado: null });
-  assert.deepEqual(decidir("trader", "qualificacao", { pais: "AR" }), { evento: "Lead Trader Qualificado", qualificado: true });
-  assert.deepEqual(decidir("general", "qualificacao", { pais: "AR", resposta: "no_pero_podria", genero: "mujer", faixa: "35_44" }), { evento: "Lead General Qualificado", qualificado: true });
-  assert.deepEqual(decidir("general", "qualificacao", { pais: "AR", resposta: "no_pero_podria", genero: "mujer", faixa: "25_34" }), { evento: "Lead General Desqualificado", qualificado: false });
-  assert.deepEqual(decidir("general", "qualificacao", { pais: "UY", resposta: "no_pero_podria", genero: "mujer", faixa: "35_44" }), { evento: "Lead General Qualificado", qualificado: true });
+  assert.deepEqual(decidir("general", "lead", { pais: "AR" }), { evento: "Lead General", qualificado: null, qualificado_meta: null });
+  assert.deepEqual(decidir("trader", "lead", { pais: "UY" }), { evento: "Lead Trader", qualificado: null, qualificado_meta: null });
+  assert.deepEqual(decidir("trader", "qualificacao", { pais: "AR" }), { evento: "Lead Trader Qualificado", qualificado: true, qualificado_meta: true });
+  assert.deepEqual(decidir("general", "qualificacao", { pais: "AR", resposta: "no_pero_podria", genero: "mujer", faixa: "35_44" }), { evento: "Lead General Desqualificado", qualificado: true, qualificado_meta: false });
+  assert.deepEqual(decidir("general", "qualificacao", { pais: "AR", resposta: "no_pero_podria", genero: "mujer", faixa: "25_34" }), { evento: "Lead General Desqualificado", qualificado: false, qualificado_meta: false });
+  assert.deepEqual(decidir("general", "qualificacao", { pais: "UY", resposta: "no_pero_podria", genero: "mujer", faixa: "35_44" }), { evento: "Lead General Qualificado", qualificado: true, qualificado_meta: true });
   // Jubilados: mesma regra da General, evento próprio
-  assert.deepEqual(decidir("jubilados", "lead", { pais: "UY" }), { evento: "Lead Jubilado", qualificado: null });
-  assert.deepEqual(decidir("jubilados", "qualificacao", { pais: "AR", resposta: "si_puedo" }), { evento: "Lead Jubilado Qualificado", qualificado: true });
-  assert.deepEqual(decidir("jubilados", "qualificacao", { pais: "AR", resposta: "no_pero_podria", genero: "mujer", faixa: "25_34" }), { evento: "Lead Jubilado Desqualificado", qualificado: false });
-  assert.deepEqual(decidir("jubilados", "qualificacao", { pais: "AR", resposta: "imposible" }), { evento: "Lead Jubilado Desqualificado", qualificado: false });
+  assert.deepEqual(decidir("jubilados", "lead", { pais: "UY" }), { evento: "Lead Jubilado", qualificado: null, qualificado_meta: null });
+  assert.deepEqual(decidir("jubilados", "qualificacao", { pais: "AR", resposta: "si_puedo" }), { evento: "Lead Jubilado Qualificado", qualificado: true, qualificado_meta: true });
+  assert.deepEqual(decidir("jubilados", "qualificacao", { pais: "AR", resposta: "no_pero_podria", genero: "mujer", faixa: "25_34" }), { evento: "Lead Jubilado Desqualificado", qualificado: false, qualificado_meta: false });
+  assert.deepEqual(decidir("jubilados", "qualificacao", { pais: "AR", resposta: "imposible" }), { evento: "Lead Jubilado Desqualificado", qualificado: false, qualificado_meta: false });
   // General/Jubilados: mesma regra da General, evento próprio
-  assert.deepEqual(decidir("genjub", "lead", { pais: "AR" }), { evento: "Lead GeneralJubilados", qualificado: null });
-  assert.deepEqual(decidir("genjub", "qualificacao", { pais: "UY", resposta: "no_pero_podria", genero: "mujer", faixa: "mayor_65" }), { evento: "Lead Qualificado GeneralJubilados", qualificado: true });
-  assert.deepEqual(decidir("genjub", "qualificacao", { pais: "AR", resposta: "no_pero_podria", genero: "mujer", faixa: "25_34" }), { evento: "Lead Desqualificado GeneralJubilados", qualificado: false });
+  assert.deepEqual(decidir("genjub", "lead", { pais: "AR" }), { evento: "Lead GeneralJubilados", qualificado: null, qualificado_meta: null });
+  assert.deepEqual(decidir("genjub", "qualificacao", { pais: "UY", resposta: "no_pero_podria", genero: "mujer", faixa: "mayor_65" }), { evento: "Lead Qualificado GeneralJubilados", qualificado: true, qualificado_meta: true });
+  assert.deepEqual(decidir("genjub", "qualificacao", { pais: "AR", resposta: "no_pero_podria", genero: "mujer", faixa: "25_34" }), { evento: "Lead Desqualificado GeneralJubilados", qualificado: false, qualificado_meta: false });
+  // 27/10: a Meta já recebe a regra nova; a planilha/painel continuam no critério anterior
+  assert.deepEqual(decidir("general", "qualificacao", { pais: "AR", resposta: "no_pero_podria", genero: "mujer", faixa: "45_54" }), { evento: "Lead General Qualificado", qualificado: false, qualificado_meta: true });
+  assert.deepEqual(decidir("jubilados", "qualificacao", { pais: "UY", resposta: "si_puedo", genero: "mujer", faixa: "55_64" }), { evento: "Lead Jubilado Desqualificado", qualificado: true, qualificado_meta: false });
+  assert.deepEqual(decidir("genjub", "qualificacao", { pais: "AR", resposta: "si_puedo", genero: "hombre", faixa: "mayor_65" }), { evento: "Lead Desqualificado GeneralJubilados", qualificado: true, qualificado_meta: false });
   // Nomes não podem mudar: as campanhas otimizam por eles.
   assert.deepEqual(EVENTOS, {
     general: { lead: "Lead General", qualificacao: "Lead General Qualificado" },

@@ -1,15 +1,26 @@
 /**
- * REGRAS OFICIAIS DE QUALIFICAÇÃO (mapa mental do funil, atualizado em 22/10/2026 e 23/10/2026;
- * antes: confirmadas pelo Emiliano em 02/10 e 13/10).
- * Este é o ÚNICO lugar com essas regras. Qualquer mudança aqui precisa
+ * REGRAS OFICIAIS DE QUALIFICAÇÃO. Este é o ÚNICO lugar com essas regras. Qualquer mudança aqui precisa
  * passar nos testes de tests/regras.test.ts (que cobrem todas as combinações).
  *
- * Página geral — "Lead General Qualificado" (até 24/10 era "Lead Qualificado"):
+ * Desde 27/10/2026 existem DUAS regras para as páginas General, Jubilados e General/Jubilados
+ * (decisão do Emi: "hasta finalizar los test mantendremos la misma cualificación… solo cambiaremos el evento en Meta"):
+ *
+ * A) EVENTO NA META (qualificaMeta) — regra nova, validada pelo Emi em 27/10/2026.
+ *    Decide se vai "… Qualificado" ou "… Desqualificado" (pixel do navegador e servidor).
+ *   1) Desqualificados por PERFIL — em QUALQUER resposta, inclusive "Sí":
+ *      • Uruguai: mulher 55–64 e homem +65.
+ *      • Argentina e TODOS OS OUTROS PAÍSES (também sem país conhecido): toda mulher, menos 45–54; homem +65.
+ *   2) Os demais: "Sí" qualifica; "Imposible" (ou vazio) nunca; "No hoy" qualifica no Uruguai e, na
+ *      Argentina e outros países, só com gênero e idade informados (sobram homem até 55–64 e mulher 45–54).
+ *   Sem gênero ou idade informados, o filtro de perfil não se aplica.
+ *
+ * B) CRITÉRIO DA PLANILHA E DO PAINEL (qualificaGeral) — regra anterior (22/10 e 23/10), continua até o
+ *    fim dos testes. É o "qualificado" devolvido à página e gravado na inscrição.
  *   • Uruguai: "Sí" ou "No hoy" qualificam todos.
- *   • Argentina e TODOS OS OUTROS PAÍSES (decisão de 23/10/2026; também sem país conhecido):
- *     "Sí" qualifica todos; "No hoy" qualifica homens até 64 anos (menor de 25 a 55–64)
- *     e mulheres de 35 a 44; homens +65 e as demais mulheres não.
+ *   • Argentina e TODOS OS OUTROS PAÍSES: "Sí" qualifica todos; "No hoy" qualifica homens até 64 anos
+ *     (menor de 25 a 55–64) e mulheres de 35 a 44; homens +65 e as demais mulheres não.
  *   • "Imposible" nunca qualifica.
+ *
  * Página trader — "Lead Trader Qualificado" (Argentina e Uruguai), no clique para entrar no grupo:
  *   • "Menos de 3 meses", "6 a 12 meses" e "de 1 año" qualificam;
  *   • "Nunca hice" não qualifica;
@@ -70,6 +81,7 @@ export function qualificaTrader(experiencia: unknown): boolean {
   return normalizarExperiencia(experiencia) !== "nunca";
 }
 
+/** B) Critério da planilha e do painel (regra anterior, até o fim dos testes). */
 export function qualificaGeral(p: { pais: string | null; resposta: unknown; genero: unknown; faixa: unknown }): boolean {
   const resposta = normalizarResposta(p.resposta);
   if (resposta === "si_puedo") return true;
@@ -81,6 +93,28 @@ export function qualificaGeral(p: { pais: string | null; resposta: unknown; gene
   if (genero === "hombre") return FAIXAS_AR_NO_HOY_HOMEM.includes(faixa);
   if (genero === "mujer") return FAIXAS_AR_NO_HOY_MULHER.includes(faixa);
   return false;
+}
+
+/** Perfil desqualificado (27/10): vale para qualquer resposta. Sem gênero ou idade, não se aplica. */
+export function desqualificadoPorPerfil(pais: string | null, genero: Genero | null, faixa: Faixa | null): boolean {
+  if (!genero || !faixa) return false;
+  if (pais === "UY") return (genero === "mujer" && faixa === "55_64") || (genero === "hombre" && faixa === "mayor_65");
+  // Argentina e outros países
+  if (genero === "hombre") return faixa === "mayor_65";
+  return faixa !== "45_54";
+}
+
+/** A) Evento na Meta (regra nova de 27/10). */
+export function qualificaMeta(p: { pais: string | null; resposta: unknown; genero: unknown; faixa: unknown }): boolean {
+  const resposta = normalizarResposta(p.resposta);
+  if (resposta !== "si_puedo" && resposta !== "no_pero_podria") return false; // "Imposible" ou vazio nunca qualifica
+  const genero = normalizarGenero(p.genero);
+  const faixa = normalizarFaixa(p.faixa);
+  if (desqualificadoPorPerfil(p.pais, genero, faixa)) return false;
+  if (resposta === "si_puedo") return true;
+  if (p.pais === "UY") return true; // Uruguai: "No hoy" qualifica (fora do perfil desqualificado)
+  // Argentina e outros países: "No hoy" só com gênero e idade informados (sobram homem até 55–64 e mulher 45–54)
+  return genero !== null && faixa !== null;
 }
 
 export type Landing = "general" | "trader" | "jubilados" | "genjub";
@@ -104,11 +138,19 @@ export const DESQUALIFICADO: Record<Landing, string> = {
   genjub: "Lead Desqualificado GeneralJubilados",
 };
 
-/** Decide se a ação gera evento e qual. */
+/**
+ * Decide se a ação gera evento e qual.
+ *   evento / qualificado_meta → regra nova (A), o que vai para a Meta;
+ *   qualificado → critério da planilha e do painel (B), devolvido à página e gravado na inscrição.
+ * Na Trader as duas são iguais.
+ */
 export function decidir(landing: Landing, acao: Acao, p: { pais: string | null; resposta?: unknown; genero?: unknown; faixa?: unknown; experiencia?: unknown }) {
-  if (acao === "lead") return { evento: EVENTOS[landing].lead, qualificado: null as boolean | null };
-  const qualificado = landing === "trader"
-    ? qualificaTrader(p.experiencia)
-    : qualificaGeral({ pais: p.pais, resposta: p.resposta, genero: p.genero, faixa: p.faixa });
-  return { evento: qualificado ? EVENTOS[landing].qualificacao : DESQUALIFICADO[landing], qualificado };
+  if (acao === "lead") return { evento: EVENTOS[landing].lead, qualificado: null as boolean | null, qualificado_meta: null as boolean | null };
+  if (landing === "trader") {
+    const q = qualificaTrader(p.experiencia);
+    return { evento: q ? EVENTOS.trader.qualificacao : DESQUALIFICADO.trader, qualificado: q, qualificado_meta: q };
+  }
+  const dados = { pais: p.pais, resposta: p.resposta, genero: p.genero, faixa: p.faixa };
+  const meta = qualificaMeta(dados);
+  return { evento: meta ? EVENTOS[landing].qualificacao : DESQUALIFICADO[landing], qualificado: qualificaGeral(dados), qualificado_meta: meta };
 }
